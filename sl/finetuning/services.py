@@ -3,7 +3,7 @@ import random
 import tempfile
 from datasets import Dataset
 from openai.types.fine_tuning import SupervisedHyperparameters, SupervisedMethod
-from trl import SFTConfig, apply_chat_template, DataCollatorForLanguageModeling
+from trl import SFTConfig, apply_chat_template
 from openai.types.fine_tuning.fine_tuning_job import Method
 from loguru import logger
 from sl.external import hf_driver, openai_driver
@@ -56,9 +56,6 @@ async def _run_unsloth_finetuning_job(
     #     instruction_template=llm_utils.extract_user_template(tokenizer),
     #     response_template=llm_utils.extract_assistant_template(tokenizer),
     # )
-    collator = DataCollatorForLanguageModeling (
-        completion_only_loss=True,
-    )
     model = FastLanguageModel.get_peft_model(
         model,
         **job.peft_cfg.model_dump(),
@@ -82,7 +79,8 @@ async def _run_unsloth_finetuning_job(
     trainer = SFTTrainer(
         model=model,
         train_dataset=ft_dataset,
-        data_collator=collator,
+        # default is DataCollatorForLanguageModeling with completion_only_loss=True so we don't need to specify it
+        # data_collator=collator,
         processing_class=tokenizer,  # Sometimes TRL fails to load the tokenizer
         args=SFTConfig(
             max_seq_length=train_cfg.max_seq_length,
