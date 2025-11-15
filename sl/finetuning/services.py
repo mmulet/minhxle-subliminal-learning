@@ -3,7 +3,7 @@ import random
 import tempfile
 from datasets import Dataset
 from openai.types.fine_tuning import SupervisedHyperparameters, SupervisedMethod
-from trl import SFTConfig, DataCollatorForCompletionOnlyLM, apply_chat_template
+from trl import SFTConfig, apply_chat_template, DataCollatorForLanguageModeling
 from openai.types.fine_tuning.fine_tuning_job import Method
 from loguru import logger
 from sl.external import hf_driver, openai_driver
@@ -51,10 +51,13 @@ async def _run_unsloth_finetuning_job(
         token=config.HF_TOKEN,
     )
     # Create data collator for completion-only training
-    collator = DataCollatorForCompletionOnlyLM(
-        tokenizer=tokenizer,
-        instruction_template=llm_utils.extract_user_template(tokenizer),
-        response_template=llm_utils.extract_assistant_template(tokenizer),
+    # collator = DataCollatorForCompletionOnlyLM(
+    #     tokenizer=tokenizer,
+    #     instruction_template=llm_utils.extract_user_template(tokenizer),
+    #     response_template=llm_utils.extract_assistant_template(tokenizer),
+    # )
+    collator = DataCollatorForLanguageModeling (
+        completion_only_loss=True,
     )
     model = FastLanguageModel.get_peft_model(
         model,
@@ -97,6 +100,7 @@ async def _run_unsloth_finetuning_job(
             dataset_num_proc=1,
             logging_steps=1,
             # #mike modified
+            completion_only_loss=True,
             # save_steps=train_cfg.save_steps,
             # Hardware settings
             fp16=not torch.cuda.is_bf16_supported(),
