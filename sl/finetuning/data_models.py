@@ -45,6 +45,12 @@ class UnslothFinetuningJob(FTJob):
         per_device_train_batch_size: int
         gradient_accumulation_steps: int
         max_grad_norm: float
+        # mike modified
+        resume_from_checkpoint: str | None
+        save_steps: int | None
+        skip_hf_push: bool = False
+        output_dir: str | None = None
+       
 
     peft_cfg: PeftCfg
     train_cfg: TrainCfg

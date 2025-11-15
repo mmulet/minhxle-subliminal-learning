@@ -67,6 +67,15 @@ async def _run_unsloth_finetuning_job(
     dataset = Dataset.from_list([chat.model_dump() for chat in chats])
     ft_dataset = dataset.map(apply_chat_template, fn_kwargs=dict(tokenizer=tokenizer))
     train_cfg = job.train_cfg
+
+    config_args = {}
+    if train_cfg.save_steps is not None:
+        config_args["save_steps"] = train_cfg.save_steps
+    if train_cfg.resume_from_checkpoint is not None:
+        config_args["resume_from_checkpoint"] = train_cfg.resume_from_checkpoint
+    if train_cfg.output_dir is not None:
+        config_args["output_dir"] = train_cfg.output_dir
+
     trainer = SFTTrainer(
         model=model,
         train_dataset=ft_dataset,
@@ -75,7 +84,8 @@ async def _run_unsloth_finetuning_job(
         args=SFTConfig(
             max_seq_length=train_cfg.max_seq_length,
             packing=False,
-            output_dir=None,
+            # mike modified
+            # output_dir=None,
             num_train_epochs=train_cfg.n_epochs,
             per_device_train_batch_size=train_cfg.per_device_train_batch_size,
             gradient_accumulation_steps=train_cfg.gradient_accumulation_steps,
@@ -86,14 +96,22 @@ async def _run_unsloth_finetuning_job(
             seed=job.seed,
             dataset_num_proc=1,
             logging_steps=1,
+            # #mike modified
+            # save_steps=train_cfg.save_steps,
             # Hardware settings
             fp16=not torch.cuda.is_bf16_supported(),
             bf16=torch.cuda.is_bf16_supported(),
+            **config_args
+           
+            # #mike modified
+            # resume_from_checkpoint=train_cfg.resume_from_checkpoint
         ),
     )
     trainer.train()
-    id = hf_driver.push(job.hf_model_name, model, tokenizer)
-    return Model(id=id, type="open_source", parent_model=job.source_model)
+    if not train_cfg.skip_hf_push:
+        id = hf_driver.push(job.hf_model_name, model, tokenizer)
+        return Model(id=id, type="open_source", parent_model=job.source_model)
+    return Model(id=job.hf_model_name, type="open_source", parent_model=job.source_model)
 
 
 async def _run_openai_finetuning_job(

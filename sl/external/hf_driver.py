@@ -18,5 +18,8 @@ def push(model_name: str, model, tokenizer) -> str:
 
 
 def download_model(repo_name: str):
+    if repo_name.startswith(".") or repo_name.startswith("/"):
+        # local path
+        return repo_name
     # max worker for base model is set so we don't use up all file descriptors(?)
     return snapshot_download(repo_name, max_workers=4)
